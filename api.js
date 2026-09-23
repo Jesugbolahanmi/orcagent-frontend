@@ -1,5 +1,5 @@
 // ─── AQUA Backend API ────────────────────────────────────────────────────────
-const AQUA_API = "https://corsproxy.io/?https://launchpad-backend-production-63dc.up.railway.app";
+const AQUA_API = "";
 
 async function apiFetch(path) {
   const res = await fetch(`${AQUA_API}${path}`, { cache: "no-store" });
