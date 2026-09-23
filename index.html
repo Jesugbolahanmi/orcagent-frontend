@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ORCAGENT — Browse, monitor, and trade tokens. Powered by Orca Whirlpools and Jupiter." />
+  <title>ORCAGENT — Launchpad Trading Assistant</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <!-- Solana web3.js (UMD build) -->
+  <script src="https://unpkg.com/@solana/web3.js@1.95.4/lib/index.iife.min.js"></script>
+  <script>
+    // Make solanaWeb3 available globally for wallet.js
+    window.solanaWeb3 = window.solanaWeb3 || solanaWeb3;
+  </script>
+</head>
+<body>
+
+<!-- ── Navigation ─────────────────────────────────────────────────────────── -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-mark">O</div>
+    <div>
+      <div class="nav-logo-text">ORCAGENT</div>
+      <div class="nav-logo-sub">Launchpad Trading Assistant</div>
+    </div>
+  </a>
+
+  <div class="nav-spacer"></div>
+
+  <div class="nav-live-dot">
+    <div class="live-dot"></div>
+    Mainnet
+  </div>
+
+  <button id="wallet-btn">Connect Wallet</button>
+</nav>
+
+<!-- ── App ────────────────────────────────────────────────────────────────── -->
+<div id="app">
+
+  <!-- ── Error banner ──────────────────────────────────────────────────── -->
+  <div id="app-error" style="display:none; background: rgba(255,77,106,0.1); border-bottom: 1px solid rgba(255,77,106,0.3); padding: 10px 24px; font-size: 0.85rem; color: #ff4d6a;"></div>
+
+  <!-- ── Tab Bar ──────────────────────────────────────────────────────── -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="markets">
+      <span class="tab-icon">📊</span> Markets
+    </button>
+    <button class="tab-btn" data-tab="agent">
+      <span class="tab-icon">🤖</span> Agent
+    </button>
+    <button class="tab-btn" data-tab="portfolio">
+      <span class="tab-icon">👛</span> Portfolio
+    </button>
+    <button class="tab-btn" data-tab="alerts">
+      <span class="tab-icon">🔔</span> Alerts
+    </button>
+  </div>
+
+  <!-- ── Tab Panels ─────────────────────────────────────────────────── -->
+  <div class="tab-panels">
+
+    <!-- ── Markets ─────────────────────────────────────────────────── -->
+    <div class="tab-panel active" data-tab="markets">
+      <div class="markets-panel">
+
+        <div class="markets-toolbar">
+          <div id="market-stats"></div>
+
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input id="search-input" type="text" placeholder="Search tokens..." autocomplete="off" />
+          </div>
+
+          <div class="filter-group">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="sol">SOL pairs</button>
+            <button class="filter-btn" data-filter="orca">ORCA pairs</button>
+          </div>
+
+          <select id="sort-select">
+            <option value="marketCapUsd">Market Cap</option>
+            <option value="volume24hUsd">Volume 24h</option>
+            <option value="change24h">Top Gainers</option>
+            <option value="change24h_asc">Top Losers</option>
+            <option value="holderCount">Holders</option>
+            <option value="newest">Newest</option>
+          </select>
+        </div>
+
+        <!-- Loading state -->
+        <div id="markets-loading" style="display:flex;">
+          <div class="spinner"></div>
+          <p>Loading markets...</p>
+        </div>
+
+        <!-- Market cards -->
+        <div id="markets-grid"></div>
+      </div>
+    </div>
+
+    <!-- ── Agent ────────────────────────────────────────────────────── -->
+    <div class="tab-panel" data-tab="agent">
+      <div class="agent-panel">
+
+        <!-- Sidebar: quick commands -->
+        <div class="agent-sidebar">
+          <div>
+            <div class="sidebar-section-title">Quick Commands</div>
+            <div class="quick-commands">
+              <button class="quick-cmd" data-cmd="show markets">📊 Show markets</button>
+              <button class="quick-cmd" data-cmd="top movers">📈 Top movers</button>
+              <button class="quick-cmd" data-cmd="top losers">📉 Top losers</button>
+              <button class="quick-cmd" data-cmd="most volume">🔥 Most volume</button>
+              <button class="quick-cmd" data-cmd="newest launches">🆕 New launches</button>
+              <button class="quick-cmd" data-cmd="my portfolio">👛 My portfolio</button>
+              <button class="quick-cmd" data-cmd="show alerts">🔔 My alerts</button>
+              <button class="quick-cmd" data-cmd="help">❓ Help</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="sidebar-section-title">Example Commands</div>
+            <div class="quick-commands">
+              <button class="quick-cmd" data-cmd="price of ORCA">price of ORCA</button>
+              <button class="quick-cmd" data-cmd="buy 0.1 SOL of ORCA">buy 0.1 SOL of ORCA</button>
+              <button class="quick-cmd" data-cmd="set alert ORCA above 0.0005">alert ORCA above 0.0005</button>
+              <button class="quick-cmd" data-cmd="info ORCA">info ORCA</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat main area -->
+        <div class="agent-main">
+          <div class="agent-header">
+            <div class="agent-avatar">🧊</div>
+            <div>
+              <div class="agent-title">ORCAGENT</div>
+              <div class="agent-subtitle">Ask me anything about markets</div>
+            </div>
+          </div>
+
+          <div id="chat-feed"></div>
+
+          <div class="chat-form-wrap">
+            <form id="chat-form">
+              <input
+                id="chat-input"
+                type="text"
+                placeholder="Try: price of ORCA · buy 0.1 SOL of ORCAT · top movers"
+                autocomplete="off"
+              />
+              <button id="chat-send" type="submit">Send →</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Portfolio ─────────────────────────────────────────────────── -->
+    <div class="tab-panel" data-tab="portfolio">
+      <div class="portfolio-panel">
+        <div id="portfolio-content">
+          <div class="connect-prompt">Connect your wallet to see your token holdings</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Alerts ─────────────────────────────────────────────────────── -->
+    <div class="tab-panel" data-tab="alerts">
+      <div class="alerts-panel">
+        <h2>🔔 Price Alerts</h2>
+
+        <!-- Create alert form -->
+        <div class="alert-form-card">
+          <h3>Create a new alert</h3>
+          <form id="alert-form">
+            <input id="alert-symbol" type="text" placeholder="Symbol (e.g. ORCA)" maxlength="12" />
+            <select id="alert-condition">
+              <option value="above">Above ↑</option>
+              <option value="below">Below ↓</option>
+            </select>
+            <input id="alert-price" type="number" step="any" placeholder="Price in USD" />
+            <button class="btn-add-alert" type="submit">+ Add Alert</button>
+          </form>
+        </div>
+
+        <!-- Alerts list -->
+        <div class="alerts-section">
+          <h3>Your Alerts</h3>
+          <div id="alerts-list"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-panels -->
+</div><!-- /app -->
+
+<!-- ── Trade Modal ─────────────────────────────────────────────────────────── -->
+<div id="trade-modal">
+  <div class="modal-card">
+    <button id="modal-close">✕</button>
+
+    <div class="modal-top">
+      <img id="modal-token-img" src="" alt="" style="display:none" />
+      <div>
+        <div id="modal-token-name">Token Name</div>
+        <div id="modal-token-price"></div>
+      </div>
+      <span id="modal-direction">Buy</span>
+    </div>
+
+    <div class="modal-field">
+      <label id="modal-amount-label" for="modal-amount">Amount to spend (SOL)</label>
+      <input id="modal-amount" type="number" step="any" min="0" placeholder="0.0" />
+    </div>
+
+    <div id="modal-quote-box"></div>
+
+    <div class="modal-actions">
+      <button id="modal-quote-btn">Get Quote</button>
+      <button id="modal-submit-btn" data-direction="buy">Buy Token</button>
+    </div>
+
+    <div id="modal-error"></div>
+    <div id="modal-loading">
+      <div class="spinner" style="width:18px;height:18px;border-width:2px;"></div>
+      <span>Loading…</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast Container ──────────────────────────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<!-- ── Scripts ─────────────────────────────────────────────────────────────── -->
+<script>
+  // Wire up quick-command sidebar buttons before app.js loads
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".quick-cmd").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const input = document.getElementById("chat-input");
+        const form  = document.getElementById("chat-form");
+        if (input && form) {
+          input.value = btn.dataset.cmd;
+          // Switch to agent tab
+          document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === "agent"));
+          document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.tab === "agent"));
+          form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+        }
+      });
+    });
+  });
+</script>
+<script type="module" src="./app.js"></script>
+
+</body>
+</html>
